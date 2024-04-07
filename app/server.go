@@ -25,7 +25,7 @@ func main() {
 			continue // Skip this connection attempt but keep server running
 		}
 
-		handleConnection(conn)
+		go handleConnection(conn)
 	}
 }
 
@@ -49,15 +49,6 @@ func handleConnection(conn net.Conn) {
 	}
 	method, path, version := parts[0], parts[1], parts[2]
 	fmt.Printf("Method: %s, Path: %s, Version: %s\n", method, path, version)
-
-	// for {
-	// 	line, err := reader.ReadString('\n')
-	// 	if err != nil || strings.TrimSpace(line) != "\r\n" {
-	// 		headers := strings.Split(line, "\n")
-	// 		fmt.Printf("headers: %s\n", headers[1])
-	// 		break // Headers are done
-	// 	}
-	// }
 
 	var length int
 	var userAgent string
