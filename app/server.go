@@ -50,11 +50,35 @@ func handleConnection(conn net.Conn) {
 	method, path, version := parts[0], parts[1], parts[2]
 	fmt.Printf("Method: %s, Path: %s, Version: %s\n", method, path, version)
 
-	// Read and ignore headers for this example
+	// for {
+	// 	line, err := reader.ReadString('\n')
+	// 	if err != nil || strings.TrimSpace(line) != "\r\n" {
+	// 		headers := strings.Split(line, "\n")
+	// 		fmt.Printf("headers: %s\n", headers[1])
+	// 		break // Headers are done
+	// 	}
+	// }
+
+	var length int
+	var userAgent string
+
 	for {
 		line, err := reader.ReadString('\n')
-		if err != nil || strings.TrimSpace(line) == "" {
-			break // Headers are done
+		if err != nil {
+			fmt.Println("Error reading headers:", err.Error())
+			break
+		}
+		// Check if the line signifies the end of the headers
+		if line == "\r\n" {
+			break
+		}
+
+		// Process each header line. Specifically, look for the User-Agent header.
+		if strings.HasPrefix(line, "User-Agent:") {
+			userAgent = strings.TrimSpace(strings.TrimPrefix(line, "User-Agent:"))
+			length = len(userAgent)
+			fmt.Printf("User-Agent details: %s\n", userAgent)
+			break // Assuming we're only looking for User-Agent, we can break after finding it
 		}
 	}
 
@@ -65,6 +89,9 @@ func handleConnection(conn net.Conn) {
 		fmt.Println(content)
 		result := len(content)
 		res := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", result, content)
+		conn.Write([]byte(res))
+	} else if strings.HasPrefix(path, "/user-agent") {
+		res := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", length, userAgent)
 		conn.Write([]byte(res))
 	} else if path == "/" {
 		res = "HTTP/1.1 200 OK\r\n\r\n"
