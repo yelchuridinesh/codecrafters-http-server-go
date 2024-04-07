@@ -57,13 +57,23 @@ func handleConnection(conn net.Conn) {
 			break // Headers are done
 		}
 	}
+	stringPath := strings.Split(strings.TrimSpace(path), "/")
+	first := stringPath[0]
+	second := stringPath[1]
+	third := stringPath[2]
+	result := len(third)
+	fmt.Printf("first: %s, second: %s, third: %s, result: %d\n", first, second, third, result)
 
-	// Respond based on the path
-	if path == "/" {
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	} else {
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-	}
+	response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-type: text/plain\r\nContent-length: %d\r\n\r\n", result)
+
+	conn.Write([]byte(response))
+
+	// //Respond based on the path
+	// if path == "/" {
+	// 	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	// } else {
+	// 	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+	// }
 }
 
 // package main
