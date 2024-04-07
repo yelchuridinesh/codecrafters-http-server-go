@@ -60,7 +60,7 @@ func main() {
 		if err != nil || line != "\r\n" {
 			parts = strings.Split(line, " ") //stored remaining part of the headers in the map
 			headers[parts[0]] = parts[1]
-			fmt.Printf("%v %v\n", parts[0], headers[parts[1]])
+			fmt.Printf("%v %v\n", parts[0], headers[parts[0]])
 		} else {
 			break
 		}
