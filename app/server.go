@@ -57,23 +57,21 @@ func handleConnection(conn net.Conn) {
 			break // Headers are done
 		}
 	}
-	stringPath := strings.Split(strings.TrimSpace(path), "/")
-	first := stringPath[0]
-	second := stringPath[1]
-	third := stringPath[2]
-	result := len(third)
-	fmt.Printf("first: %s, second: %s, third: %s, result: %d\n", first, second, third, result)
 
-	response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-type: text/plain\r\nContent-length: %d\r\n\r\n", result)
+	var res string // declared variable res of type string
 
-	conn.Write([]byte(response))
-
-	// //Respond based on the path
-	// if path == "/" {
-	// 	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	// } else {
-	// 	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-	// }
+	if strings.HasPrefix(path, "/echo") {
+		content := strings.TrimPrefix(path, "/echo/")
+		result := len(content)
+		res = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-type: text/plain\r\nContent-length: %d\r\n\r\n", result)
+		conn.Write([]byte(res))
+	} else if path == "/" {
+		res = "HTTP/1.1 200 OK\r\n\r\n"
+		conn.Write([]byte(res))
+	} else {
+		res = "HTTP/1.1 404 Not Found\r\n\r\n"
+		conn.Write([]byte(res))
+	}
 }
 
 // package main
