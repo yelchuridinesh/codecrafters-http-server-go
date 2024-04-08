@@ -79,7 +79,34 @@ func handleConnection(conn net.Conn, directory string) {
 	}
 
 	var res string // declared variable res of type string
-	if strings.HasPrefix(path, "/files") {
+	if strings.HasPrefix(method, "POST") && strings.HasPrefix(path, "/files") {
+		newFileName := path[7:]
+		pathFile := directory + newFileName
+		if _, err := os.Open(directory); os.IsNotExist(err) {
+			fmt.Println("Directory doesn't exists")
+		} else {
+			fmt.Println("The directory named", directory, "exists")
+			_, err := os.Create(pathFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fileDetails, err := os.ReadFile(pathFile)
+			if err != nil {
+				if os.IsNotExist(err) {
+					fmt.Println("File does not exist.")
+					res := "HTTP/1.1 404 Not Found\r\n\r\n"
+					conn.Write([]byte(res))
+				} else {
+					fmt.Println("error reading file")
+					log.Fatal(err)
+				}
+			} else {
+				fmt.Println(fileDetails)
+				res := "HTTP/1.1 201 Created\r\n\r\n"
+				conn.Write([]byte(res))
+			}
+		}
+	} else if strings.HasPrefix(path, "/files") {
 		fileName := path[7:]
 		//fmt.Println(fileName)
 		filePath := directory + fileName
