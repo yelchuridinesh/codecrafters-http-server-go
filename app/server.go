@@ -102,7 +102,7 @@ func handleConnection(conn net.Conn, directory string) {
 				}
 			} else {
 				fmt.Println(fileDetails)
-				res := "HTTP/1.1 201 Created\r\n\r\n"
+				res := fmt.Sprintf("HTTP/1.1 201 Created\r\n\r\n%s", string(fileDetails))
 				conn.Write([]byte(res))
 			}
 		}
