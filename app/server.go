@@ -99,7 +99,7 @@ func handleConnection(conn net.Conn, directory string) {
 					log.Fatal(err)
 				}
 			} else {
-				fileLength := len(fileName)
+				fileLength := len(fileContent)
 				res := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", fileLength, string(fileContent))
 				conn.Write([]byte(res))
 			}
