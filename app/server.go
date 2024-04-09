@@ -1,150 +1,91 @@
 package main
 
 import (
-	"bufio"
+	"flag"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strings"
+
+	"github.com/NexFlare/build-http-server-go/internal/request"
+	"github.com/NexFlare/build-http-server-go/internal/response"
+	"github.com/NexFlare/build-http-server-go/internal/server"
 )
 
 func main() {
-	var directory string
+
 	fmt.Println("Logs from your program will appear here!")
-	fmt.Println(os.Args[0])
-	if len(os.Args) == 3 && os.Args[1] == "--directory" {
-		directory = os.Args[2]
-		fmt.Println(directory)
-	}
-	l, err := net.Listen("tcp", "0.0.0.0:4221")
-	if err != nil {
-		fmt.Println("Failed to bind to port 4221")
-		os.Exit(1)
-	}
-	defer l.Close()
 
-	for {
-		conn, err := l.Accept()
+	server := server.CreateConnection("tcp", "0.0.0.0:4221")
+	dir := flag.String("directory", "", "The name of the directory")
+	flag.Parse()
+	server.StartServer(func(conn net.Conn) {
+		request := server.GetRequest(conn)
+		err := processRequest(request, dir)
 		if err != nil {
-			fmt.Println("Error accepting connection:", err.Error())
-			continue // Skip this connection attempt but keep server running
+			fmt.Println("Error while writing: ", err.Error())
+			os.Exit(1)
 		}
+	})
 
-		go handleConnection(conn, directory)
-	}
 }
 
-func handleConnection(conn net.Conn, directory string) {
-	defer conn.Close()
-	reader := bufio.NewReader(conn)
+func processRequest(req *request.Request, dir *string) error {
+	url := req.GetUrl()
+	conn := req.GetConnection()
+	var err error
+	res := response.NewResponse(conn)
 
-	// Read the request line
-	requestLine, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println("Error reading request line:", err.Error())
-		return
-	}
-
-	// Parse the request line
-	parts := strings.Split(strings.TrimSpace(requestLine), " ")
-	if len(parts) < 3 {
-		fmt.Println("Malformed request line.")
-		return
-	}
-	method, path, version := parts[0], parts[1], parts[2]
-	fmt.Printf("Method: %s, Path: %s, Version: %s\n", method, path, version)
-
-	var length int
-	var userAgent string
-
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Println("Error reading headers:", err.Error())
-			break
-		}
-		// Check if the line signifies the end of the headers
-		if line == "\r\n" {
-			break
-		}
-
-		// Process each header line. Specifically, look for the User-Agent header.
-		if strings.HasPrefix(line, "User-Agent:") {
-			userAgent = strings.TrimSpace(strings.TrimPrefix(line, "User-Agent:"))
-			length = len(userAgent)
-			fmt.Printf("User-Agent details: %s\n", userAgent)
-			break // Assuming we're only looking for User-Agent, we can break after finding it
-		}
-	}
-
-	var res string // declared variable res of type string
-	if strings.HasPrefix(method, "POST") && strings.HasPrefix(path, "/files") {
-		newFileName := path[7:]
-		pathFile := directory + newFileName
-		if _, err := os.Open(directory); os.IsNotExist(err) {
-			fmt.Println("Directory doesn't exists")
-		} else {
-			fmt.Println("The directory named", directory, "exists")
-			_, err := os.Create(pathFile)
-			if err != nil {
-				log.Fatal(err)
-			}
-			fileDetails, err := os.ReadFile(pathFile)
-			if err != nil {
-				if os.IsNotExist(err) {
-					fmt.Println("File does not exist.")
-					res := "HTTP/1.1 404 Not Found\r\n\r\n"
-					conn.Write([]byte(res))
+	if url == "/" {
+		res.Ok()
+		return nil
+	} else if strings.Contains(url, "/echo/") {
+		content := (url)[6:]
+		res.WriteHeader("Content-Type", "text/plain")
+		res.SendWithBody(response.StatusOk, &content)
+	} else if url == "/user-agent" {
+		content := req.Header["User-Agent"]
+		res.WriteHeader("Content-Type", "text/plain")
+		res.SendWithBody(response.StatusOk, &content)
+	} else if strings.Contains(url, "/files/") {
+		fileName := url[7:]
+		if dir != nil {
+			file := fmt.Sprintf("%s%s", *dir, fileName)
+			if req.Method == request.GET {
+				data, readFileError := os.ReadFile(file)
+				if readFileError != nil {
+					res := response.NewResponse(conn)
+					res.NotFound()
 				} else {
-					fmt.Println("error reading file")
-					log.Fatal(err)
+					content := string(data[:])
+					res.WriteHeader("Content-Type", "application/octet-stream")
+					res.SendWithBody(response.StatusOk, &content)
 				}
-			} else {
-				fmt.Println(string(fileDetails))
-				res := fmt.Sprintf("HTTP/1.1 201 Created\r\n\r\n%s", string(fileDetails))
-				conn.Write([]byte(res))
+			} else if req.Method == request.POST {
+				if req.Body == nil {
+					res.BadRequest()
+					return nil
+				}
+				f, err := os.Create(file)
+				if err != nil {
+					res.ServerError()
+					return err
+				}
+				_, err = f.WriteString(*req.Body)
+				if err != nil {
+					res.ServerError()
+					return err
+				}
+				res.Status = response.StatusCreated
+				res.Send()
 			}
-		}
-	} else if strings.HasPrefix(path, "/files") {
-		fileName := path[7:]
-		//fmt.Println(fileName)
-		filePath := directory + fileName
-		//fmt.Println(filePath)
-		if _, err := os.Open(directory); os.IsNotExist(err) {
-			fmt.Println("Directory doesn't exists")
+
 		} else {
-			fmt.Println("The directory named", directory, "exists")
-			fileContent, err := os.ReadFile(filePath)
-			if err != nil {
-				if os.IsNotExist(err) {
-					fmt.Println("File does not exist.")
-					res := "HTTP/1.1 404 Not Found\r\n\r\n"
-					conn.Write([]byte(res))
-				} else {
-					fmt.Println("error reading file")
-					log.Fatal(err)
-				}
-			} else {
-				fileLength := len(fileContent)
-				res := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", fileLength, string(fileContent))
-				conn.Write([]byte(res))
-			}
+			res.NotFound()
 		}
-	} else if strings.HasPrefix(path, "/echo") {
-		content := path[6:]
-		fmt.Println(content)
-		result := len(content)
-		res := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", result, content)
-		conn.Write([]byte(res))
-	} else if strings.HasPrefix(path, "/user-agent") {
-		res := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", length, userAgent)
-		conn.Write([]byte(res))
-	} else if path == "/" {
-		res = "HTTP/1.1 200 OK\r\n\r\n"
-		conn.Write([]byte(res))
+
 	} else {
-		res = "HTTP/1.1 404 Not Found\r\n\r\n"
-		conn.Write([]byte(res))
+		res.NotFound()
 	}
+	return err
 }

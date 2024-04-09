@@ -9,3 +9,5 @@
 module github.com/codecrafters-io/http-server-starter-go
 
 go 1.19
+
+require github.com/NexFlare/build-http-server-go v0.0.0-20240403233139-b51058190d83 // indirect
