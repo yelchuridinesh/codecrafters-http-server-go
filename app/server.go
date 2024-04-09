@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/NexFlare/build-http-server-go/internal/request"
-	"github.com/NexFlare/build-http-server-go/internal/response"
-	"github.com/NexFlare/build-http-server-go/internal/server"
+	"github.com/codecrafters-io/http-server-starter-go/internal/request"
+	"github.com/codecrafters-io/http-server-starter-go/internal/response"
+	"github.com/codecrafters-io/http-server-starter-go/internal/server"
 )
 
 func main() {
