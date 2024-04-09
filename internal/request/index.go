@@ -6,8 +6,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/NexFlare/build-http-server-go/internal/context"
-	"github.com/NexFlare/build-http-server-go/internal/helper"
+	"github.com/codecrafters-io/http-server-starter-go/internal/context"
+	"github.com/codecrafters-io/http-server-starter-go/internal/helper"
 )
 
 type Method string

@@ -5,8 +5,8 @@ import (
 	"net"
 	"os"
 
-	"github.com/NexFlare/build-http-server-go/internal/context"
-	"github.com/NexFlare/build-http-server-go/internal/request"
+	"github.com/codecrafters-io/http-server-starter-go/internal/context"
+	"github.com/codecrafters-io/http-server-starter-go/internal/request"
 )
 
 type conn string
